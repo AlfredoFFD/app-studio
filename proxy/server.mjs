@@ -38,10 +38,37 @@ function send(res, code, obj) {
 }
 
 const server = http.createServer((req, res) => {
+  const url = new URL(req.url, 'http://localhost');
   if (req.method === 'OPTIONS') return send(res, 204, {});
-  if (req.method === 'GET' && req.url === '/health') return send(res, 200, { ok: true });
-  if (req.method !== 'POST' || !req.url.startsWith('/api/generate')) return send(res, 404, { error: 'not found' });
+  if (req.method === 'GET' && url.pathname === '/health') return send(res, 200, { ok: true });
 
+  // GET /api/status?jobId=… — poll the fal queue (mirrors api/status.ts)
+  if (req.method === 'GET' && url.pathname === '/api/status') {
+    (async () => {
+      const jobId = url.searchParams.get('jobId');
+      if (!jobId) return send(res, 400, { error: 'jobId required' });
+      try {
+        const status = await fal.queue.status(MODEL, { requestId: jobId });
+        if (status?.status === 'COMPLETED') {
+          const result = await fal.queue.result(MODEL, { requestId: jobId });
+          const videoUrl = result?.data?.video?.url ?? null;
+          if (!videoUrl) return send(res, 502, { status: 'error', error: 'no video in result' });
+          console.log(`[status] ${jobId} done → ${videoUrl}`);
+          return send(res, 200, { status: 'done', videoUrl });
+        }
+        return send(res, 200, { status: 'processing', queue: status?.status ?? 'UNKNOWN' });
+      } catch (e) {
+        console.error('[status] error', e?.message || e);
+        send(res, 500, { status: 'error', error: String(e?.message || e) });
+      }
+    })();
+    return;
+  }
+
+  // POST /api/generate — submit to the fal queue (mirrors api/generate.ts)
+  if (req.method !== 'POST' || !url.pathname.startsWith('/api/generate')) {
+    return send(res, 404, { error: 'not found' });
+  }
   let body = '';
   req.on('data', (c) => (body += c));
   req.on('end', async () => {
@@ -50,14 +77,11 @@ const server = http.createServer((req, res) => {
       if (!imageBase64) return send(res, 400, { error: 'imageBase64 required' });
       const prompt = STYLE_PROMPTS[styleId] ?? STYLE_PROMPTS.sway;
       console.log(`[generate] style=${styleId} imglen=${imageBase64.length}`);
-      const result = await fal.subscribe(MODEL, {
-        input: { image_url: imageBase64, prompt },
-        logs: false,
-      });
-      const videoUrl = result?.data?.video?.url ?? null;
-      console.log(`[generate] done → ${videoUrl}`);
-      if (!videoUrl) return send(res, 502, { error: 'no video in fal response', raw: result?.data });
-      send(res, 200, { videoUrl });
+      const submitted = await fal.queue.submit(MODEL, { input: { image_url: imageBase64, prompt } });
+      const jobId = submitted?.request_id ?? null;
+      console.log(`[generate] submitted → ${jobId}`);
+      if (!jobId) return send(res, 502, { error: 'no request_id from fal' });
+      send(res, 202, { jobId });
     } catch (e) {
       console.error('[generate] error', e?.message || e);
       send(res, 500, { error: String(e?.message || e) });
