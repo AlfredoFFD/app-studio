@@ -1,9 +1,17 @@
 /**
- * Local dev proxy — hides the fal.ai key and runs Kling image-to-video.
- * Run: FAL_KEY=... node server.mjs   (key via env, never in a file)
- * The app points EXPO_PUBLIC_API_URL at http://<LAN-IP>:8787
+ * App Studio generation proxy — hides the fal.ai key, runs a two-stage pipeline:
  *
- * For production, the same logic ships as the Vercel function in api/generate.ts.
+ *   APPEARANCE styles (anime, zombie): STYLIZE the photo (nano-banana edit,
+ *     likeness-preserving) → then ANIMATE the stylized image (Kling).
+ *   MOTION styles (sway, hiphop, kpop, ballet): ANIMATE the photo directly.
+ *
+ * The stylize step is fast (~10s) so it runs synchronously inside POST
+ * /api/generate (well within Vercel's 300s Fluid-Compute limit); the slow
+ * Kling animate (~55s) stays a QUEUE job the app polls via GET /api/status.
+ * So the app client is unchanged: POST { imageBase64, styleId } -> { jobId },
+ * then poll /api/status?jobId=… -> processing | done { videoUrl } | error.
+ *
+ * Runs identically locally (`FAL_KEY=… node server.mjs`) and on Vercel.
  */
 import http from 'node:http';
 import { fal } from '@fal-ai/client';
@@ -15,16 +23,30 @@ if (!KEY) {
 }
 fal.config({ credentials: KEY });
 
-const MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'; // ~55s/clip, image_url field
+// Kling 2.6 Pro: better face fidelity than turbo at the same $0.35/5s. NOTE the
+// field is `start_image_url` (v2.6/v3 renamed it from `image_url`).
+const ANIMATE_MODEL = 'fal-ai/kling-video/v2.6/pro/image-to-video';
+// nano-banana edit (Gemini 2.5 Flash Image): likeness-preserving restyle, one
+// model covers every appearance style via the prompt. Takes `image_urls` (array).
+const STYLIZE_MODEL = 'fal-ai/nano-banana/edit';
 const PORT = Number(process.env.PORT) || 8787;
 
-const STYLE_PROMPTS = {
-  sway: 'the person in the photo performs a smooth, viral TikTok sway dance, full-body rhythmic motion, energetic and looping',
-  hiphop: 'the person in the photo performs an energetic hip-hop dance routine with sharp confident moves',
-  kpop: 'the person in the photo performs a synchronized, polished K-pop dance choreography',
-  ballet: 'the person in the photo performs an elegant ballet dance with graceful spins and poses',
-  anime: 'the person in the photo performs a stylized anime-style dance with exaggerated expressive motion',
-  zombie: 'the person in the photo performs a funny, stiff zombie dance, lurching and shambling to a beat',
+// Per style: `motion` = the Kling dance prompt (always). `stylize` = an optional
+// appearance transform run first (nano-banana). Appearance styles are where the
+// "turn into X" wow lives; motion styles keep the user photorealistic.
+const STYLES = {
+  sway:   { motion: 'the person performs a smooth, viral TikTok sway dance, full-body rhythmic motion, energetic and looping' },
+  hiphop: { motion: 'the person performs an energetic hip-hop dance routine with sharp, confident moves' },
+  kpop:   { motion: 'the person performs a synchronized, polished K-pop dance choreography' },
+  ballet: { motion: 'the person performs an elegant ballet dance with graceful spins and poses' },
+  anime: {
+    stylize: 'Restyle this person as a vibrant cel-shaded anime character — big expressive eyes, clean anime linework and shading, colorful — while keeping their face, hairstyle and identity clearly recognizable as the same person.',
+    motion: 'the anime character performs an energetic, expressive dance with lively full-body motion',
+  },
+  zombie: {
+    stylize: 'Transform this person into a realistic zombie — decayed greyish skin, sunken bloodshot eyes, subtle wounds and tattered clothing — while keeping their facial structure and identity recognizable.',
+    motion: 'the zombie performs a funny, stiff, lurching zombie shuffle dance to a beat',
+  },
 };
 
 function send(res, code, obj) {
@@ -32,7 +54,7 @@ function send(res, code, obj) {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   });
   res.end(JSON.stringify(obj));
 }
@@ -42,15 +64,15 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, {});
   if (req.method === 'GET' && url.pathname === '/health') return send(res, 200, { ok: true });
 
-  // GET /api/status?jobId=… — poll the fal queue (mirrors api/status.ts)
+  // GET /api/status?jobId=… — poll the Kling animate job (fal queue).
   if (req.method === 'GET' && url.pathname === '/api/status') {
     (async () => {
       const jobId = url.searchParams.get('jobId');
       if (!jobId) return send(res, 400, { error: 'jobId required' });
       try {
-        const status = await fal.queue.status(MODEL, { requestId: jobId });
+        const status = await fal.queue.status(ANIMATE_MODEL, { requestId: jobId });
         if (status?.status === 'COMPLETED') {
-          const result = await fal.queue.result(MODEL, { requestId: jobId });
+          const result = await fal.queue.result(ANIMATE_MODEL, { requestId: jobId });
           const videoUrl = result?.data?.video?.url ?? null;
           if (!videoUrl) return send(res, 502, { status: 'error', error: 'no video in result' });
           console.log(`[status] ${jobId} done → ${videoUrl}`);
@@ -65,7 +87,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // POST /api/generate — submit to the fal queue (mirrors api/generate.ts)
+  // POST /api/generate — stylize (if appearance style) then submit the animate job.
   if (req.method !== 'POST' || !url.pathname.startsWith('/api/generate')) {
     return send(res, 404, { error: 'not found' });
   }
@@ -75,11 +97,32 @@ const server = http.createServer((req, res) => {
     try {
       const { imageBase64, styleId } = JSON.parse(body || '{}');
       if (!imageBase64) return send(res, 400, { error: 'imageBase64 required' });
-      const prompt = STYLE_PROMPTS[styleId] ?? STYLE_PROMPTS.sway;
-      console.log(`[generate] style=${styleId} imglen=${imageBase64.length}`);
-      const submitted = await fal.queue.submit(MODEL, { input: { image_url: imageBase64, prompt } });
+      const style = STYLES[styleId] ?? STYLES.sway;
+
+      // Stage 1 (appearance styles only): restyle the photo, keeping likeness.
+      let animateImage = imageBase64;
+      if (style.stylize) {
+        console.log(`[generate] style=${styleId} → stylize (nano-banana)…`);
+        const styled = await fal.subscribe(STYLIZE_MODEL, {
+          input: { image_urls: [imageBase64], prompt: style.stylize, num_images: 1 },
+        });
+        const styledUrl = styled?.data?.images?.[0]?.url ?? null;
+        if (!styledUrl) return send(res, 502, { error: 'stylize returned no image' });
+        console.log(`[generate] stylized → ${styledUrl}`);
+        animateImage = styledUrl;
+      }
+
+      // Stage 2: submit the Kling animate job (polled via /api/status).
+      const submitted = await fal.queue.submit(ANIMATE_MODEL, {
+        input: {
+          start_image_url: animateImage,
+          prompt: style.motion,
+          duration: '5',
+          generate_audio: false,
+        },
+      });
       const jobId = submitted?.request_id ?? null;
-      console.log(`[generate] submitted → ${jobId}`);
+      console.log(`[generate] style=${styleId} animate submitted → ${jobId}`);
       if (!jobId) return send(res, 502, { error: 'no request_id from fal' });
       send(res, 202, { jobId });
     } catch (e) {
@@ -89,4 +132,6 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`fal proxy listening on :${PORT} (model ${MODEL})`));
+server.listen(PORT, '0.0.0.0', () =>
+  console.log(`fal proxy on :${PORT} — animate=${ANIMATE_MODEL} stylize=${STYLIZE_MODEL}`),
+);
