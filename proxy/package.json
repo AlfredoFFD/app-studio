@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Serverless proxy that hides the fal.ai key and runs image-to-video generation for the App Studio apps.",
+  "description": "Node proxy that hides the fal.ai key and runs image-to-video generation for the App Studio apps. Deployed to Vercel as a Node server (Fluid Compute); the same file runs locally.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
   "dependencies": {
     "@fal-ai/client": "^1.6.0"
   }
