@@ -1,6 +1,6 @@
 import { StyleSheet, View, type ViewProps } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { Glow, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export function Card({ style, ...rest }: ViewProps) {
@@ -9,7 +9,8 @@ export function Card({ style, ...rest }: ViewProps) {
     <View
       style={[
         styles.card,
-        { backgroundColor: theme.card, borderColor: theme.border },
+        // brighter top edge = faked light-from-above (spatial depth)
+        { backgroundColor: theme.card, borderColor: theme.border, borderTopColor: 'rgba(255,255,255,0.12)' },
         style,
       ]}
       {...rest}
@@ -22,5 +23,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1,
     padding: Spacing.four,
+    ...Glow.card,
   },
 });

@@ -17,7 +17,7 @@ import Animated, {
 
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
-import { Radii, Spacing } from '@/constants/theme';
+import { Fonts, Glow, Radii, Spacing, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAppState } from '@/lib/app-state';
 import { generateDance, type GenResult } from '@/lib/generate';
@@ -131,7 +131,7 @@ export function DanceHome() {
         Drop a photo — your pet, your selfie, anyone — and watch it bust a move.
       </Text>
 
-      <Pressable onPress={pick} style={styles.stageWrap}>
+      <Pressable onPress={pick} style={[styles.stageWrap, result ? Glow.accent : null]}>
         <View
           style={[styles.stage, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
         >
@@ -175,12 +175,12 @@ export function DanceHome() {
               style={[
                 styles.chip,
                 {
-                  backgroundColor: sel ? theme.tint : theme.backgroundElement,
+                  backgroundColor: sel ? theme.accentSoft : theme.backgroundElement,
                   borderColor: sel ? theme.tint : theme.border,
                 },
               ]}
             >
-              <Text style={[styles.chipText, { color: sel ? theme.onTint : theme.text }]}>
+              <Text style={[styles.chipText, { color: sel ? theme.tint : theme.text }]}>
                 {s.emoji}  {s.label}
               </Text>
             </Pressable>
@@ -228,22 +228,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginTop: Spacing.two,
   },
-  kicker: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
-  h1: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, marginTop: 2 },
-  sub: { fontSize: 16, lineHeight: 22, marginTop: Spacing.two, marginBottom: Spacing.four },
+  kicker: { ...Type.kicker },
+  h1: { ...Type.h1, marginTop: 4 },
+  sub: { ...Type.body, marginTop: Spacing.two, marginBottom: Spacing.four },
   stageWrap: { width: '100%' },
   stage: {
     width: '100%',
     aspectRatio: 3 / 4,
-    borderRadius: Radii.lg,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
+    borderRadius: Radii.stage,
+    borderWidth: 1,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
   empty: { alignItems: 'center', gap: Spacing.two },
-  emptyText: { fontSize: 14, fontWeight: '600' },
+  emptyText: { fontFamily: Fonts.bodySemi, fontSize: 14 },
   note1: { position: 'absolute', top: 14, left: 16, fontSize: 26 },
   note2: { position: 'absolute', top: 36, right: 18, fontSize: 22 },
   scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 90 },
@@ -252,8 +251,8 @@ const styles = StyleSheet.create({
     left: Spacing.three,
     bottom: Spacing.three,
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '800',
+    fontFamily: Fonts.display,
+    fontSize: 15,
   },
   watermark: {
     position: 'absolute',
@@ -274,8 +273,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  chipText: { fontSize: 14, fontWeight: '700' },
-  error: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: Spacing.three },
+  chipText: { fontFamily: Fonts.bodySemi, fontSize: 14 },
+  error: { fontFamily: Fonts.bodySemi, fontSize: 14, textAlign: 'center', marginTop: Spacing.three },
   actions: { flexDirection: 'row', gap: Spacing.three, marginTop: Spacing.four },
-  hint: { fontSize: 12, textAlign: 'center', marginTop: Spacing.three },
+  hint: { ...Type.caption, textAlign: 'center', marginTop: Spacing.three },
 });
