@@ -1,0 +1,10 @@
+{
+  "name": "app-studio-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Serverless proxy that hides the fal.ai key and runs image-to-video generation for the App Studio apps.",
+  "dependencies": {
+    "@fal-ai/client": "^1.6.0"
+  }
+}

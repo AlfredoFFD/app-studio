@@ -1,0 +1,36 @@
+# === Secrets — never commit ===
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+.vercel
+
+# === Dependencies ===
+node_modules/
+.pnp
+.pnp.js
+
+# === Expo / RN build artifacts ===
+.expo/
+dist/
+web-build/
+*.orig.*
+*.jks
+*.keystore
+ios/
+android/
+
+# === Metro / caches ===
+.metro-health-check*
+.cache/
+
+# === OS / editor ===
+.DS_Store
+*.log
+npm-debug.*
+yarn-error.*
+
+# === TypeScript ===
+*.tsbuildinfo
+expo-env.d.ts

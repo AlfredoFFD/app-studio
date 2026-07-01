@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+*.pem
+*.p8
+.vercel
+
+.vercel
+.env*
