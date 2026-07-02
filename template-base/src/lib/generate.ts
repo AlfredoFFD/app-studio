@@ -16,8 +16,8 @@
 export type GenResult = { videoUrl: string | null; mock: boolean };
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
-const POLL_INTERVAL_MS = 3000;
-const MAX_WAIT_MS = 180000; // Kling ~1min; allow slack for queueing
+const POLL_INTERVAL_MS = 4000;
+const MAX_WAIT_MS = 480000; // Kling 3.0 renders ~2-5 min via the fal queue; allow slack
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

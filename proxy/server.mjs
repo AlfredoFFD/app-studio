@@ -23,9 +23,11 @@ if (!KEY) {
 }
 fal.config({ credentials: KEY });
 
-// Kling 2.6 Pro: better face fidelity than turbo at the same $0.35/5s. NOTE the
-// field is `start_image_url` (v2.6/v3 renamed it from `image_url`).
-const ANIMATE_MODEL = 'fal-ai/kling-video/v2.6/pro/image-to-video';
+// Kling 3.0 Pro: bake-off winner (2026-07-02) — the only model that invents a
+// full-body dance from a portrait with the face intact. ~$0.56/5s, renders in
+// ~2-5 min via the fal queue. Fallback if latency hurts: v2.6/pro (81s, $0.35,
+// upper-body sway only). Field is `start_image_url` on v2.6/v3.
+const ANIMATE_MODEL = 'fal-ai/kling-video/v3/pro/image-to-video';
 // nano-banana edit (Gemini 2.5 Flash Image): likeness-preserving restyle, one
 // model covers every appearance style via the prompt. Takes `image_urls` (array).
 const STYLIZE_MODEL = 'fal-ai/nano-banana/edit';

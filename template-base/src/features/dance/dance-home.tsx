@@ -279,9 +279,9 @@ export function DanceHome() {
       <Text style={[styles.hint, { color: theme.textSecondary }]}>
         {loading
           ? isMakeover
-            ? 'Giving you a makeover, then teaching it to dance. Up to 2 minutes...'
-            : 'Animating your photo. About a minute...'
-          : 'Motion styles take about 1 min. Makeover styles like Anime You take up to 2.'}
+            ? 'Giving you a makeover, then choreographing it in studio quality. Grab a coffee, 3 to 6 minutes...'
+            : 'Choreographing your full-body dance in studio quality. Usually 2 to 5 minutes...'
+          : 'Studio-quality full-body dance video. Worth the couple minutes it takes.'}
       </Text>
     </Screen>
   );
