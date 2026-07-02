@@ -35,7 +35,8 @@ export async function generateDance(
   const imageBase64 = await uriToBase64(photoUri);
 
   // 1) Submit — the proxy queues both tiers and returns instantly.
-  const submitRes = await fetch(`${API_URL}/api/generate`, {
+  // Retried: a transient network blip at submit should not cost the user a tap.
+  const submitRes = await fetchWithRetry(`${API_URL}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageBase64, styleId }),
@@ -92,6 +93,19 @@ export async function generateDance(
 
   if (fastUrl) return { videoUrl: fastUrl, mock: false, tier: 'fast' };
   throw new Error('Timed out. Try again.');
+}
+
+async function fetchWithRetry(url: string, init: RequestInit, tries = 3): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 1; i <= tries; i++) {
+    try {
+      return await fetch(url, init);
+    } catch (e) {
+      lastErr = e;
+      if (i < tries) await sleep(1500 * i);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Network error. Check your connection.');
 }
 
 async function pollStatus(jobId: string, tier: 'fast' | 'studio') {
