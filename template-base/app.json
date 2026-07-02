@@ -44,6 +44,12 @@
           "photosPermission": "AI Dance uses your photos to turn them into dance videos."
         }
       ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "AI Dance saves your finished dance videos to your photo library."
+        }
+      ],
       "expo-video"
     ],
     "experiments": {

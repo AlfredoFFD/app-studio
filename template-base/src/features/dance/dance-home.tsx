@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
+import { File, Paths } from 'expo-file-system';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as MediaLibrary from 'expo-media-library';
 import { useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -28,13 +31,20 @@ import { generateDance, type GenResult } from '@/lib/generate';
  * Fallback (no proxy): animates the user's photo as a "preview" so the app still demos offline.
  */
 
+// `makeover: true` = appearance transformation (stylize then animate, ~2 min).
 const DANCE_STYLES = [
   { id: 'sway', label: 'Viral Sway', emoji: '🕺' },
+  { id: 'anime', label: 'Anime You', emoji: '🌸', makeover: true },
+  { id: 'zombie', label: 'Zombie', emoji: '🧟', makeover: true },
+  { id: 'toon', label: '3D Toon', emoji: '🎬', makeover: true },
+  { id: 'painting', label: 'Old Painting', emoji: '🖼️', makeover: true },
   { id: 'hiphop', label: 'Hip-Hop', emoji: '🎧' },
   { id: 'kpop', label: 'K-Pop', emoji: '✨' },
   { id: 'ballet', label: 'Ballet', emoji: '🩰' },
-  { id: 'anime', label: 'Anime', emoji: '🌀' },
-  { id: 'zombie', label: 'Zombie', emoji: '🧟' },
+  { id: 'salsa', label: 'Salsa', emoji: '💃' },
+  { id: 'breakdance', label: 'Breakdance', emoji: '🔥' },
+  { id: 'robot', label: 'Robot', emoji: '🤖' },
+  { id: 'disco', label: 'Disco', emoji: '🪩' },
 ];
 
 export function DanceHome() {
@@ -46,6 +56,7 @@ export function DanceHome() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionBusy, setActionBusy] = useState<'save' | 'share' | null>(null);
 
   const videoUrl = result?.videoUrl ?? null;
   const player = useVideoPlayer(videoUrl, (p) => {
@@ -115,6 +126,46 @@ export function DanceHome() {
   };
 
   const styleLabel = DANCE_STYLES.find((s) => s.id === style)?.label;
+  const isMakeover = !!DANCE_STYLES.find((s) => s.id === style)?.makeover;
+
+  // Download the finished video to cache once, then hand it to Photos / the share sheet.
+  const fetchLocalVideo = async () => {
+    const target = new File(Paths.cache, `dance-${Date.now()}.mp4`);
+    const file = await File.downloadFileAsync(videoUrl as string, target);
+    return file.uri;
+  };
+
+  const saveVideo = async () => {
+    if (!videoUrl) return;
+    setActionBusy('save');
+    setError(null);
+    try {
+      const perm = await MediaLibrary.requestPermissionsAsync(true);
+      if (!perm.granted) throw new Error('Allow photo access in Settings to save your dance');
+      const uri = await fetchLocalVideo();
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert('Saved!', 'Your dance video is in your Photos.');
+    } catch (e: any) {
+      setError(e?.message || 'Save failed');
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const shareVideo = async () => {
+    if (!videoUrl) return;
+    setActionBusy('share');
+    setError(null);
+    try {
+      if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is not available on this device');
+      const uri = await fetchLocalVideo();
+      await Sharing.shareAsync(uri, { mimeType: 'video/mp4', UTI: 'public.movie' });
+    } catch (e: any) {
+      setError(e?.message || 'Share failed');
+    } finally {
+      setActionBusy(null);
+    }
+  };
 
   return (
     <Screen scroll>
@@ -198,10 +249,23 @@ export function DanceHome() {
         />
       )}
 
-      {result && isSubscribed && (
+      {videoUrl && isSubscribed && (
         <View style={styles.actions}>
-          <Button label="Save" variant="secondary" onPress={() => {}} style={{ flex: 1 }} />
-          <Button label="Share" onPress={() => {}} style={{ flex: 1 }} />
+          <Button
+            label="Save"
+            variant="secondary"
+            loading={actionBusy === 'save'}
+            disabled={!!actionBusy}
+            onPress={saveVideo}
+            style={{ flex: 1 }}
+          />
+          <Button
+            label="Share"
+            loading={actionBusy === 'share'}
+            disabled={!!actionBusy}
+            onPress={shareVideo}
+            style={{ flex: 1 }}
+          />
         </View>
       )}
 
@@ -214,8 +278,10 @@ export function DanceHome() {
       />
       <Text style={[styles.hint, { color: theme.textSecondary }]}>
         {loading
-          ? 'Kling is animating your photo — about a minute…'
-          : 'Powered by fal.ai Kling · a real dance video takes ~1 min'}
+          ? isMakeover
+            ? 'Giving you a makeover, then teaching it to dance. Up to 2 minutes...'
+            : 'Animating your photo. About a minute...'
+          : 'Motion styles take about 1 min. Makeover styles like Anime You take up to 2.'}
       </Text>
     </Screen>
   );

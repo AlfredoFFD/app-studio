@@ -14,7 +14,7 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
     icon: '🎬',
     title: 'Pick your vibe',
-    subtitle: 'Hip-hop, K-pop, anime, zombie — choose the moves and watch them move.',
+    subtitle: 'Hip-hop, salsa, disco, or full makeovers: become anime, a 3D toon, even a zombie.',
   },
   {
     icon: '🚀',

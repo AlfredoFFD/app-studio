@@ -35,17 +35,31 @@ const PORT = Number(process.env.PORT) || 8787;
 // appearance transform run first (nano-banana). Appearance styles are where the
 // "turn into X" wow lives; motion styles keep the user photorealistic.
 const STYLES = {
+  // ---- motion styles (photo stays photorealistic) ----
   sway:   { motion: 'the person performs a smooth, viral TikTok sway dance, full-body rhythmic motion, energetic and looping' },
   hiphop: { motion: 'the person performs an energetic hip-hop dance routine with sharp, confident moves' },
   kpop:   { motion: 'the person performs a synchronized, polished K-pop dance choreography' },
   ballet: { motion: 'the person performs an elegant ballet dance with graceful spins and poses' },
+  salsa:  { motion: 'the person performs a passionate salsa dance with quick hip movement, spins and latin rhythm' },
+  breakdance: { motion: 'the person performs an impressive breakdance routine with spins, freezes and fast footwork' },
+  robot:  { motion: 'the person performs a precise robot dance with mechanical, isolated popping movements' },
+  disco:  { motion: 'the person performs a groovy 1970s disco dance with pointing moves, hip sways and flair' },
+  // ---- makeover styles (stylize first, then animate) ----
   anime: {
-    stylize: 'Restyle this person as a vibrant cel-shaded anime character — big expressive eyes, clean anime linework and shading, colorful — while keeping their face, hairstyle and identity clearly recognizable as the same person.',
+    stylize: 'Restyle this person as a vibrant cel-shaded anime character with big expressive eyes, clean anime linework and rich color, while keeping their face, hairstyle and identity clearly recognizable as the same person.',
     motion: 'the anime character performs an energetic, expressive dance with lively full-body motion',
   },
   zombie: {
-    stylize: 'Transform this person into a realistic zombie — decayed greyish skin, sunken bloodshot eyes, subtle wounds and tattered clothing — while keeping their facial structure and identity recognizable.',
+    stylize: 'Transform this person into a realistic zombie with decayed greyish skin, sunken bloodshot eyes, subtle wounds and tattered clothing, while keeping their facial structure and identity recognizable.',
     motion: 'the zombie performs a funny, stiff, lurching zombie shuffle dance to a beat',
+  },
+  toon: {
+    stylize: 'Restyle this person as a polished 3D animated movie character with large expressive eyes, soft studio lighting and smooth stylized features, while keeping their face, hairstyle and identity clearly recognizable.',
+    motion: 'the 3D cartoon character performs a joyful, bouncy dance full of energy',
+  },
+  painting: {
+    stylize: 'Repaint this person as a classical Renaissance oil painting portrait with rich visible brushstrokes, dramatic lighting and canvas texture, while keeping their face and identity clearly recognizable.',
+    motion: 'the painted figure performs an elegant, theatrical dance with smooth flowing movement',
   },
 };
 
