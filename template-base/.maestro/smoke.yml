@@ -1,0 +1,24 @@
+# Smoke flow — the factory "does it even launch" gate.
+# Runs on EAS-hosted iOS simulators via .eas/workflows/e2e-test.yml (no Mac
+# needed; simulator builds are credential-free so this works pre-$99 too).
+# Per-app: update appId + the two assertion strings when cloning the template.
+appId: com.appstudio.aidance
+---
+- launchApp
+# First run lands on onboarding.
+- extendedWaitUntil:
+    visible: 'Make anything dance'
+    timeout: 20000
+# Walk the 3 onboarding slides (button copy tolerant: Continue / Next / Get started).
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          text: 'Continue|Next|Get started|Get Started|Start'
+          optional: true
+# Home = the core feature screen.
+- extendedWaitUntil:
+    visible: 'AI DANCE'
+    timeout: 15000
+# Style chips render → core feature UI is alive, no crash.
+- assertVisible: 'Hip-Hop'

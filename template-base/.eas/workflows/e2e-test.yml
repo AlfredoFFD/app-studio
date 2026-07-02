@@ -1,0 +1,23 @@
+# EAS Workflows: build an iOS SIMULATOR binary in the cloud, then run the
+# Maestro smoke flow on an EAS-hosted simulator. The no-Mac iOS test path.
+#
+# ACTIVATION (Phase 2, when EAS is initialized for this app):
+#   1. `eas init` (creates the project + eas.json)
+#   2. add to eas.json build profiles:
+#        "e2e-test": { "withoutCredentials": true, "ios": { "simulator": true } }
+#   3. `eas workflow:run .eas/workflows/e2e-test.yml` (or auto on push)
+# Syntax check against https://docs.expo.dev/eas/workflows/ when wiring — inert until then.
+name: e2e-test
+jobs:
+  build:
+    type: build
+    params:
+      platform: ios
+      profile: e2e-test
+  maestro:
+    needs: [build]
+    type: maestro
+    params:
+      build_id: ${{ needs.build.outputs.build_id }}
+      flow_path:
+        - .maestro/smoke.yml
