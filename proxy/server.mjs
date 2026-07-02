@@ -23,11 +23,13 @@ if (!KEY) {
 }
 fal.config({ credentials: KEY });
 
-// Kling 3.0 Pro: bake-off winner (2026-07-02) — the only model that invents a
-// full-body dance from a portrait with the face intact. ~$0.56/5s, renders in
-// ~2-5 min via the fal queue. Fallback if latency hurts: v2.6/pro (81s, $0.35,
-// upper-body sway only). Field is `start_image_url` on v2.6/v3.
-const ANIMATE_MODEL = 'fal-ai/kling-video/v3/pro/image-to-video';
+// TWO-TIER RENDER (bake-off 2026-07-02): submit BOTH tiers to the fal queue at
+// once. FAST (v2.6/pro, ~90s, $0.35) gives the user a first cut quickly;
+// STUDIO (v3/pro, ~2-5min, $0.56) is the only model that invents a full-body
+// dance from a portrait — it hot-swaps in when ready. Field is `start_image_url`.
+// TODO before public launch: gate the dual render (e.g. STUDIO for Pro only).
+const STUDIO_MODEL = 'fal-ai/kling-video/v3/pro/image-to-video';
+const FAST_MODEL = 'fal-ai/kling-video/v2.6/pro/image-to-video';
 // nano-banana edit (Gemini 2.5 Flash Image): likeness-preserving restyle, one
 // model covers every appearance style via the prompt. Takes `image_urls` (array).
 const STYLIZE_MODEL = 'fal-ai/nano-banana/edit';
@@ -80,21 +82,23 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, {});
   if (req.method === 'GET' && url.pathname === '/health') return send(res, 200, { ok: true });
 
-  // GET /api/status?jobId=… — poll the Kling animate job (fal queue).
+  // GET /api/status?jobId=…&tier=studio|fast — poll one animate job (fal queue).
   if (req.method === 'GET' && url.pathname === '/api/status') {
     (async () => {
       const jobId = url.searchParams.get('jobId');
+      const tier = url.searchParams.get('tier') === 'fast' ? 'fast' : 'studio';
+      const model = tier === 'fast' ? FAST_MODEL : STUDIO_MODEL;
       if (!jobId) return send(res, 400, { error: 'jobId required' });
       try {
-        const status = await fal.queue.status(ANIMATE_MODEL, { requestId: jobId });
+        const status = await fal.queue.status(model, { requestId: jobId });
         if (status?.status === 'COMPLETED') {
-          const result = await fal.queue.result(ANIMATE_MODEL, { requestId: jobId });
+          const result = await fal.queue.result(model, { requestId: jobId });
           const videoUrl = result?.data?.video?.url ?? null;
           if (!videoUrl) return send(res, 502, { status: 'error', error: 'no video in result' });
-          console.log(`[status] ${jobId} done → ${videoUrl}`);
-          return send(res, 200, { status: 'done', videoUrl });
+          console.log(`[status] ${tier} ${jobId} done → ${videoUrl}`);
+          return send(res, 200, { status: 'done', videoUrl, tier });
         }
-        return send(res, 200, { status: 'processing', queue: status?.status ?? 'UNKNOWN' });
+        return send(res, 200, { status: 'processing', queue: status?.status ?? 'UNKNOWN', tier });
       } catch (e) {
         console.error('[status] error', e?.message || e);
         send(res, 500, { status: 'error', error: String(e?.message || e) });
@@ -128,19 +132,27 @@ const server = http.createServer((req, res) => {
         animateImage = styledUrl;
       }
 
-      // Stage 2: submit the Kling animate job (polled via /api/status).
-      const submitted = await fal.queue.submit(ANIMATE_MODEL, {
-        input: {
-          start_image_url: animateImage,
-          prompt: style.motion,
-          duration: '5',
-          generate_audio: false,
-        },
+      // Stage 2: submit BOTH tiers to the queue (they render in parallel on fal).
+      const input = {
+        start_image_url: animateImage,
+        prompt: style.motion,
+        duration: '5',
+        generate_audio: false,
+      };
+      const [studio, fast] = await Promise.allSettled([
+        fal.queue.submit(STUDIO_MODEL, { input }),
+        fal.queue.submit(FAST_MODEL, { input }),
+      ]);
+      const jobId = studio.status === 'fulfilled' ? (studio.value?.request_id ?? null) : null;
+      const fastJobId = fast.status === 'fulfilled' ? (fast.value?.request_id ?? null) : null;
+      console.log(`[generate] style=${styleId} submitted → studio=${jobId} fast=${fastJobId}`);
+      if (!jobId && !fastJobId) return send(res, 502, { error: 'no request_id from fal' });
+      // stylizedUrl lets the app show the makeover LOOK in ~20s while video renders.
+      send(res, 202, {
+        jobId,
+        fastJobId,
+        stylizedUrl: animateImage !== imageBase64 ? animateImage : null,
       });
-      const jobId = submitted?.request_id ?? null;
-      console.log(`[generate] style=${styleId} animate submitted → ${jobId}`);
-      if (!jobId) return send(res, 502, { error: 'no request_id from fal' });
-      send(res, 202, { jobId });
     } catch (e) {
       console.error('[generate] error', e?.message || e);
       send(res, 500, { error: String(e?.message || e) });

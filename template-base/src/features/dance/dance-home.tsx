@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { File, Paths } from 'expo-file-system';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,7 +26,7 @@ import { Screen } from '@/components/ui/screen';
 import { Fonts, Glow, Radii, Spacing, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAppState } from '@/lib/app-state';
-import { generateDance, type GenResult } from '@/lib/generate';
+import { generateDance, type GenProgress, type GenResult } from '@/lib/generate';
 
 /**
  * APP #001 CORE FEATURE — the swappable layer.
@@ -59,6 +60,8 @@ export function DanceHome() {
   const [result, setResult] = useState<GenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<'save' | 'share' | null>(null);
+  const [stylized, setStylized] = useState<string | null>(null); // makeover still, arrives ~20s
+  const [studioPending, setStudioPending] = useState(false); // fast cut playing, studio rendering
 
   const videoUrl = result?.videoUrl ?? null;
   const player = useVideoPlayer(videoUrl, (p) => {
@@ -109,6 +112,8 @@ export function DanceHome() {
     if (!res.canceled && res.assets[0]) {
       setPhoto(res.assets[0].uri);
       setResult(null);
+      setStylized(null);
+      setStudioPending(false);
       setError(null);
     }
   };
@@ -116,14 +121,30 @@ export function DanceHome() {
   const generate = async () => {
     if (!photo) return;
     setResult(null);
+    setStylized(null);
+    setStudioPending(false);
     setError(null);
     setLoading(true);
+    let sawFastCut = false;
+    const onProgress = (p: GenProgress) => {
+      if (p.stage === 'makeover') setStylized(p.imageUrl);
+      if (p.stage === 'fast') {
+        sawFastCut = true;
+        setResult({ videoUrl: p.videoUrl, mock: false, tier: 'fast' });
+        setLoading(false); // first cut is on screen; studio keeps rendering
+        setStudioPending(true);
+      }
+    };
     try {
-      const r = await generateDance(photo, style);
+      const r = await generateDance(photo, style, onProgress);
       setResult(r);
+      if (r.tier === 'studio' && sawFastCut) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
     } catch (e: any) {
-      setError(e?.message === 'Aborted' ? 'Timed out — try again' : e?.message || 'Generation failed');
+      setError(e?.message || 'Generation failed');
     } finally {
+      setStudioPending(false);
       setLoading(false);
     }
   };
@@ -220,9 +241,9 @@ export function DanceHome() {
               contentFit="cover"
               nativeControls={false}
             />
-          ) : photo ? (
+          ) : stylized || photo ? (
             <Animated.View style={[StyleSheet.absoluteFill, showMock ? danceAnim : undefined]}>
-              <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              <Image source={{ uri: stylized ?? photo ?? undefined }} style={StyleSheet.absoluteFill} contentFit="cover" />
             </Animated.View>
           ) : (
             <View style={styles.empty}>
@@ -245,7 +266,15 @@ export function DanceHome() {
             <View style={styles.loadingOverlay}>
               <EqBars size={40} />
               <Text style={styles.loadingTitle}>{styleLabel} in progress</Text>
-              <Text style={styles.loadingLine}>{loadingLines[loadingLine]}</Text>
+              <Text style={styles.loadingLine}>
+                {stylized ? 'Makeover ready. Now making it dance...' : loadingLines[loadingLine]}
+              </Text>
+            </View>
+          )}
+
+          {studioPending && videoUrl && (
+            <View style={styles.studioPill}>
+              <Text style={styles.studioPillText}>STUDIO CUT RENDERING</Text>
             </View>
           )}
         </View>
@@ -317,9 +346,11 @@ export function DanceHome() {
       <Text style={[styles.hint, { color: theme.textSecondary }]}>
         {loading
           ? isMakeover
-            ? 'Giving you a makeover, then choreographing it in studio quality. Grab a coffee, 3 to 6 minutes...'
-            : 'Choreographing your full-body dance in studio quality. Usually 2 to 5 minutes...'
-          : 'Studio-quality full-body dance video. Worth the couple minutes it takes.'}
+            ? 'Makeover first, then your dance. First cut in about 2 minutes...'
+            : 'On it. Your first cut lands in about 90 seconds...'
+          : studioPending
+            ? 'Playing your first cut. The studio cut swaps in automatically.'
+            : 'First cut in about 90 seconds. Studio quality follows automatically.'}
       </Text>
     </Screen>
   );
@@ -372,11 +403,23 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8,5,12,0.72)',
+    backgroundColor: 'rgba(8,5,12,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.three,
   },
+  studioPill: {
+    position: 'absolute',
+    top: Spacing.three,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(8,5,12,0.75)',
+    borderColor: 'rgba(255,71,126,0.5)',
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 6,
+  },
+  studioPillText: { fontFamily: Fonts.utility, fontSize: 10, letterSpacing: 1.2, color: '#FF9DBB' },
   loadingTitle: { fontFamily: Fonts.display, fontSize: 16, color: '#FBF7FF' },
   loadingLine: { fontFamily: Fonts.bodyMedium, fontSize: 13, color: '#A79FB5' },
   chips: { gap: Spacing.two, paddingVertical: Spacing.three, paddingRight: Spacing.three },
