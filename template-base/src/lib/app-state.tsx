@@ -13,7 +13,10 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 type AppState = {
   hasOnboarded: boolean;
   isSubscribed: boolean;
+  /** Style picked during onboarding (micro-commitment); personalizes the home default. */
+  preferredStyle: string | null;
   completeOnboarding: () => void;
+  setPreferredStyle: (id: string) => void;
   subscribe: () => void;
   restore: () => void;
   reset: () => void;
@@ -24,20 +27,24 @@ const Ctx = createContext<AppState | null>(null);
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [preferredStyle, setPreferredStyleState] = useState<string | null>(null);
 
   const value = useMemo<AppState>(
     () => ({
       hasOnboarded,
       isSubscribed,
+      preferredStyle,
       completeOnboarding: () => setHasOnboarded(true),
+      setPreferredStyle: (id: string) => setPreferredStyleState(id),
       subscribe: () => setIsSubscribed(true), // STUB: real purchase via RevenueCat in dev build
       restore: () => setIsSubscribed(true), // STUB: Purchases.restorePurchases()
       reset: () => {
         setHasOnboarded(false);
         setIsSubscribed(false);
+        setPreferredStyleState(null);
       },
     }),
-    [hasOnboarded, isSubscribed],
+    [hasOnboarded, isSubscribed, preferredStyle],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

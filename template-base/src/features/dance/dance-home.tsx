@@ -12,6 +12,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import Animated, {
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -19,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/button';
+import { EqBars } from '@/components/ui/eq-bars';
 import { Screen } from '@/components/ui/screen';
 import { Fonts, Glow, Radii, Spacing, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -50,9 +52,9 @@ const DANCE_STYLES = [
 export function DanceHome() {
   const theme = useTheme();
   const router = useRouter();
-  const { isSubscribed } = useAppState();
+  const { isSubscribed, preferredStyle } = useAppState();
   const [photo, setPhoto] = useState<string | null>(null);
-  const [style, setStyle] = useState('sway');
+  const [style, setStyle] = useState(preferredStyle ?? 'sway');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +74,8 @@ export function DanceHome() {
   }, [videoUrl, player]);
 
   // Mock fallback: sway the photo when we got a result but no real video (proxy off).
-  const showMock = !!result && !videoUrl && !!photo;
+  const reducedMotion = useReducedMotion();
+  const showMock = !!result && !videoUrl && !!photo && !reducedMotion;
   const sway = useSharedValue(0);
   useEffect(() => {
     if (showMock) {
@@ -128,6 +131,20 @@ export function DanceHome() {
   const styleLabel = DANCE_STYLES.find((s) => s.id === style)?.label;
   const isMakeover = !!DANCE_STYLES.find((s) => s.id === style)?.makeover;
 
+  // Cycling status narrative while the render runs (the wait is 2-5 min).
+  const loadingLines = isMakeover
+    ? ['Applying your makeover...', 'Choreographing in studio quality...', 'Rendering HD frames...']
+    : ['Reading the beat...', 'Choreographing your moves...', 'Rendering HD frames...'];
+  const [loadingLine, setLoadingLine] = useState(0);
+  useEffect(() => {
+    if (!loading) {
+      setLoadingLine(0);
+      return;
+    }
+    const t = setInterval(() => setLoadingLine((i) => Math.min(i + 1, loadingLines.length - 1)), 45000);
+    return () => clearInterval(t);
+  }, [loading, loadingLines.length]);
+
   // Download the finished video to cache once, then hand it to Photos / the share sheet.
   const fetchLocalVideo = async () => {
     const target = new File(Paths.cache, `dance-${Date.now()}.mp4`);
@@ -174,7 +191,12 @@ export function DanceHome() {
           <Text style={[styles.kicker, { color: theme.tint }]}>AI DANCE</Text>
           <Text style={[styles.h1, { color: theme.text }]}>Make anything dance 💃</Text>
         </View>
-        <Pressable onPress={() => router.push('/settings')} hitSlop={10}>
+        <Pressable
+          onPress={() => router.push('/settings')}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Open settings"
+        >
           <Ionicons name="settings-outline" size={24} color={theme.textSecondary} />
         </Pressable>
       </View>
@@ -182,7 +204,12 @@ export function DanceHome() {
         Drop a photo — your pet, your selfie, anyone — and watch it bust a move.
       </Text>
 
-      <Pressable onPress={pick} style={[styles.stageWrap, result ? Glow.accent : null]}>
+      <Pressable
+        onPress={pick}
+        style={[styles.stageWrap, result ? Glow.accent : null]}
+        accessibilityRole="button"
+        accessibilityLabel={photo ? 'Change photo' : 'Add a photo'}
+      >
         <View
           style={[styles.stage, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
         >
@@ -213,6 +240,14 @@ export function DanceHome() {
               {!isSubscribed && <Text style={styles.watermark}>PREVIEW</Text>}
             </>
           )}
+
+          {loading && (
+            <View style={styles.loadingOverlay}>
+              <EqBars size={40} />
+              <Text style={styles.loadingTitle}>{styleLabel} in progress</Text>
+              <Text style={styles.loadingLine}>{loadingLines[loadingLine]}</Text>
+            </View>
+          )}
         </View>
       </Pressable>
 
@@ -223,6 +258,9 @@ export function DanceHome() {
             <Pressable
               key={s.id}
               onPress={() => setStyle(s.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sel }}
+              accessibilityLabel={`${s.label} style`}
               style={[
                 styles.chip,
                 {
@@ -332,11 +370,22 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     transform: [{ rotate: '-18deg' }],
   },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(8,5,12,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.three,
+  },
+  loadingTitle: { fontFamily: Fonts.display, fontSize: 16, color: '#FBF7FF' },
+  loadingLine: { fontFamily: Fonts.bodyMedium, fontSize: 13, color: '#A79FB5' },
   chips: { gap: Spacing.two, paddingVertical: Spacing.three, paddingRight: Spacing.three },
   chip: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    borderRadius: Radii.pill,
+    borderRadius: Radii.chip,
     borderWidth: 1,
   },
   chipText: { fontFamily: Fonts.bodySemi, fontSize: 14 },
