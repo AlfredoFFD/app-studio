@@ -161,5 +161,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () =>
-  console.log(`fal proxy on :${PORT} — animate=${ANIMATE_MODEL} stylize=${STYLIZE_MODEL}`),
+  console.log(`fal proxy on :${PORT} — studio=${STUDIO_MODEL} fast=${FAST_MODEL} stylize=${STYLIZE_MODEL}`),
 );
