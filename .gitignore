@@ -34,3 +34,7 @@ yarn-error.*
 # === TypeScript ===
 *.tsbuildinfo
 expo-env.d.ts
+
+.playwright-mcp/
+.env
+.env.local
