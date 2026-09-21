@@ -1,15 +1,24 @@
 # app-studio
 
-An iOS app factory built entirely on Windows, with no Mac anywhere in the loop.
+**Ship an iOS app without owning a Mac.**
+
+Everything here runs on Windows. Development, preview on a real iPhone, the
+production build, and App Store submission — no Xcode, no borrowed MacBook, no
+cloud Mac rental.
+
+```
+Windows + Expo  ──▶  Expo Go on your iPhone      (live preview, $0)
+                ──▶  EAS Build  ──▶  TestFlight  ($99/yr Apple, no Mac)
+```
 
 A reusable Expo/React Native template plus the process around it: take a one-page
-spec, reskin the template, wire one AI feature, ship to TestFlight. The question
-it answers is whether the no-Mac indie iOS path actually holds up end to end in
-2026, or whether it falls apart the first time you need a native module.
+spec, reskin the template, wire one AI feature, submit. Onboarding flow,
+RevenueCat paywall, settings, and themeable design tokens are already built — the
+only file you swap per app is `app/index.tsx`.
 
 **Status: a working template and toolchain, not a shipped app.** Three days of
-build in July 2026. Nothing went to the App Store. Read it as a stack validation,
-not a product.
+build in July 2026, and nothing went to the App Store. Read it as a validated
+stack and a starting point, not a product.
 
 ## Layout
 
