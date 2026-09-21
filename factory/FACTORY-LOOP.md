@@ -37,7 +37,7 @@ Develop on Windows → preview Expo Go ($0) → RevenueCat real IAP needs an **E
 
 ## Human-gated seams (the ONLY human touches — Claude-in-Chrome drives to each boundary)
 1. Apple Developer enroll + **$99** payment.
-2. Logins + 2FA (Apple/EAS/RevenueCat/Supabase) — Claude navigates, Alfredo enters secrets.
+2. Logins + 2FA (Apple/EAS/RevenueCat/Supabase) — Claude navigates, the owner enters secrets.
 3. Final **"Submit for Review"** click + a 1-screen taste glance.
 4. Device test for haptics/notifications.
 
