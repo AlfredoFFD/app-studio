@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 320" width="780" height="320" role="img" aria-label="The no-Mac iOS pipeline: a Windows machine runs Expo, previews live on an iPhone through Expo Go at zero cost, builds through EAS in the cloud, and submits to TestFlight and the App Store. No Mac appears at any stage.">
+  <rect x="0" y="0" width="780" height="320" rx="10" fill="#0F1218"/>
+
+  <text x="24" y="34" font-family="ui-sans-serif,-apple-system,Segoe UI,sans-serif" font-size="14" font-weight="600" fill="#E8ECF4">Windows to the App Store, no Mac at any step</text>
+  <line x1="24" y1="46" x2="756" y2="46" stroke="#242A36" stroke-width="1"/>
+
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <polygon points="0,1 10,5 0,9" fill="#5B8DEF"/>
+    </marker>
+  </defs>
+
+  <!-- dev box -->
+  <rect x="24" y="80" width="168" height="86" rx="7" fill="#161B24" stroke="#2E3644" stroke-width="1.5"/>
+  <text x="108" y="108" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="13.5" font-weight="600" fill="#E8ECF4">Windows PC</text>
+  <text x="108" y="128" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" fill="#8B94A6">npx expo start</text>
+  <text x="108" y="148" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="11" fill="#6E7687">no Xcode installed</text>
+
+  <!-- to phone -->
+  <line x1="192" y1="108" x2="252" y2="108" stroke="#5B8DEF" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="222" y="100" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="10.5" fill="#8B94A6">QR</text>
+
+  <rect x="258" y="80" width="168" height="86" rx="7" fill="#161B24" stroke="#2E3644" stroke-width="1.5"/>
+  <text x="342" y="108" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="13.5" font-weight="600" fill="#E8ECF4">Expo Go on iPhone</text>
+  <text x="342" y="128" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="11" fill="#8B94A6">live preview, real device</text>
+  <text x="342" y="148" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="11.5" font-weight="600" fill="#5FC77F">$0</text>
+
+  <!-- to EAS -->
+  <line x1="192" y1="200" x2="252" y2="200" stroke="#5B8DEF" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="108" y1="166" x2="108" y2="200" stroke="#5B8DEF" stroke-width="1.6"/>
+  <line x1="108" y1="200" x2="192" y2="200" stroke="#5B8DEF" stroke-width="1.6"/>
+
+  <rect x="258" y="172" width="168" height="86" rx="7" fill="#161B24" stroke="#2E3644" stroke-width="1.5"/>
+  <text x="342" y="200" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="13.5" font-weight="600" fill="#E8ECF4">EAS Build</text>
+  <text x="342" y="220" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="11" fill="#8B94A6">cloud macOS runners</text>
+  <text x="342" y="240" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="11" fill="#6E7687">signs the .ipa for you</text>
+
+  <line x1="426" y1="200" x2="486" y2="200" stroke="#5B8DEF" stroke-width="1.6" marker-end="url(#a)"/>
+
+  <rect x="492" y="172" width="168" height="86" rx="7" fill="#161B24" stroke="#5B8DEF" stroke-width="1.8"/>
+  <text x="576" y="200" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="13.5" font-weight="600" fill="#E8ECF4">TestFlight → App Store</text>
+  <text x="576" y="220" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" fill="#8B94A6">eas submit</text>
+  <text x="576" y="240" text-anchor="middle" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="11.5" font-weight="600" fill="#E6C07B">$99/yr Apple</text>
+
+  <!-- what's in the template -->
+  <line x1="24" y1="282" x2="756" y2="282" stroke="#242A36" stroke-width="1"/>
+  <text x="24" y="304" font-family="ui-sans-serif,Segoe UI,sans-serif" font-size="12" fill="#8B94A6">
+    <tspan fill="#6E7687">already built in the template:</tspan>
+    <tspan fill="#D6DBE5"> onboarding · RevenueCat paywall · settings · design tokens</tspan>
+    <tspan fill="#6E7687"> — you swap </tspan>
+    <tspan font-family="ui-monospace,Menlo,monospace" fill="#E6C07B">app/index.tsx</tspan>
+  </text>
+</svg>

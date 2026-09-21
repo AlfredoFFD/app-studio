@@ -6,10 +6,7 @@ Everything here runs on Windows. Development, preview on a real iPhone, the
 production build, and App Store submission — no Xcode, no borrowed MacBook, no
 cloud Mac rental.
 
-```
-Windows + Expo  ──▶  Expo Go on your iPhone      (live preview, $0)
-                ──▶  EAS Build  ──▶  TestFlight  ($99/yr Apple, no Mac)
-```
+![Windows runs Expo, previews live on an iPhone through Expo Go for free, builds through EAS in the cloud, and submits to TestFlight — no Mac at any step](docs/no-mac-path.svg)
 
 A reusable Expo/React Native template plus the process around it: take a one-page
 spec, reskin the template, wire one AI feature, submit. Onboarding flow,
